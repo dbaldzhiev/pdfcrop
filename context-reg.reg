@@ -1,9 +1,9 @@
 Windows Registry Editor Version 5.00
 
-; Add Verb
-[HKEY_CURRENT_USER\Software\Classes\MSEdgePDF\shell\PDFCROP]
-@="PDFCROP"
-[HKEY_CURRENT_USER\Software\Classes\MSEdgePDF\shell\PDFCROP\command]
-@="\"C:\\pdfcrop\\pdcrop.bat\" \"%1\""
-[HKEY_CURRENT_USER\Software\Classes\MSEdgePDF\shell\PDFCROP]
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.pdf\shell\Item0]
+"MUIVerb"="PDFCROP"
+"Position"="top"
 "Icon"="C:\\pdfcrop\\pdfcorp.ico,0"
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.pdf\shell\Item0\command]
+@="C:\\pdfcrop\\pdcrop.bat \"%1\""
