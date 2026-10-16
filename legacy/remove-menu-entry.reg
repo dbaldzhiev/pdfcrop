@@ -1,0 +1,8 @@
+Windows Registry Editor Version 5.00
+
+; Removes the right-click entry written by the 2023 hand-rolled setup
+; (context-reg.reg in this folder). Requires administrator rights.
+; You do not need this if you installed PDFCROP with the installer while
+; running it elevated — that already cleans the key up.
+
+[-HKEY_CLASSES_ROOT\SystemFileAssociations\.pdf\shell\Item0]

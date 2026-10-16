@@ -1,0 +1,27 @@
+[package]
+name = "pdfcrop"
+version = "2.0.0"
+edition = "2021"
+rust-version = "1.75"
+authors = ["Dimitar Baldzhiev"]
+license = "MIT"
+description = "Drop-in replacement for TeX Live's pdfcrop: crops PDF margins per page, no Perl, no TeX."
+repository = "https://github.com/dbaldzhiev/pdfcrop"
+
+[[bin]]
+name = "pdfcrop"
+path = "src/main.rs"
+
+[dependencies]
+lopdf = "0.45"
+
+[build-dependencies]
+# Windows only: embeds the icon and version metadata into pdfcrop.exe.
+winresource = "0.1"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
