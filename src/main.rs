@@ -23,6 +23,7 @@ const PROGRAM: &str = "pdfcrop";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() -> ExitCode {
+    use_utf8_console();
     let argv: Vec<String> = std::env::args().skip(1).collect();
     let opts = match Options::parse(&argv) {
         Ok(ParseResult::Help) => {
@@ -197,6 +198,26 @@ fn fmt(v: f64, hires: bool) -> String {
         format!("{}", v.round() as i64)
     }
 }
+
+/// Ask the Windows console to interpret our output as UTF-8.
+///
+/// A console window created by Explorer starts on the OEM code page (850 on the
+/// studio workstations), so a Cyrillic file name printed by the tool would show
+/// up as `ðóðÁÐüÐé` even though the file itself is handled correctly. Our output
+/// is UTF-8, so switch the console over; best effort, and harmless if the output
+/// is a pipe or a file.
+#[cfg(windows)]
+fn use_utf8_console() {
+    extern "system" {
+        fn SetConsoleOutputCP(code_page: u32) -> i32;
+    }
+    unsafe {
+        SetConsoleOutputCP(65001);
+    }
+}
+
+#[cfg(not(windows))]
+fn use_utf8_console() {}
 
 /// Keep the console window open when launched from the Explorer context menu.
 fn wait_for_key(pause: bool, quiet: bool) {
