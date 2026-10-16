@@ -1,0 +1,84 @@
+name: build
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Tests
+        run: cargo test --release
+
+      - name: Build pdfcrop.exe
+        run: cargo build --release
+
+      # Ghostscript is the only third-party runtime PDFCROP ships: nothing on the
+      # target machine may depend on an existing installation. The official
+      # Windows installer is NSIS, so it can be unpacked without running it; the
+      # two paths below are tried in order and the result is verified.
+      - name: Fetch and trim Ghostscript
+        shell: pwsh
+        run: |
+          $version = "10080"
+          $url = "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs$version/gs${version}w64.exe"
+          $sha256 = "52a91b8bf09298788d7a57b9206127026c23eacd75405f0a131e26dc381dce50"
+          Invoke-WebRequest -Uri $url -OutFile gs-setup.exe
+          $actual = (Get-FileHash gs-setup.exe -Algorithm SHA256).Hash.ToLower()
+          if ($actual -ne $sha256) { throw "Ghostscript installer hash mismatch: $actual" }
+
+          New-Item -ItemType Directory -Force unpack | Out-Null
+          Push-Location unpack
+          7z x -y ..\gs-setup.exe | Out-Null
+          Pop-Location
+          if (-not (Test-Path unpack\bin\gswin64c.exe)) {
+            # Fallback: NSIS silent install into a local folder.
+            New-Item -ItemType Directory -Force unpack | Out-Null
+            Start-Process -Wait -FilePath .\gs-setup.exe -ArgumentList "/S", "/D=$PWD\unpack"
+          }
+          if (-not (Test-Path unpack\bin\gswin64c.exe)) { throw "could not unpack Ghostscript" }
+
+          # Keep the runtime the bbox device and pdfwrite need; drop the GUI, the
+          # development files, documentation, examples and the VC++ redistributable.
+          New-Item -ItemType Directory -Force staging\gs\bin, staging\gs\lib | Out-Null
+          Copy-Item unpack\bin\gswin64c.exe, unpack\bin\gsdll64.dll staging\gs\bin
+          Copy-Item unpack\lib       staging\gs\lib       -Recurse
+          Copy-Item unpack\Resource  staging\gs\Resource  -Recurse
+          Copy-Item unpack\iccprofiles staging\gs\iccprofiles -Recurse
+          Copy-Item unpack\doc\COPYING staging\gs\COPYING
+          Copy-Item target\release\pdfcrop.exe staging\pdfcrop.exe
+          "ghostscript payload: {0:N1} MB" -f ((Get-ChildItem staging\gs -Recurse -File | Measure-Object Length -Sum).Sum / 1MB)
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Compile installer
+        shell: pwsh
+        run: |
+          $version = (Select-String -Path Cargo.toml -Pattern '^version\s*=\s*"([^"]+)"').Matches[0].Groups[1].Value
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          & $iscc "/DAppVersion=$version" installer\pdfcrop.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed" }
+          Get-ChildItem dist
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: pdfcrop-setup
+          path: dist\*.exe
+          if-no-files-found: error
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.exe
+          generate_release_notes: true

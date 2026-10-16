@@ -1,0 +1,14 @@
+PDFCROP installs a PDF cropping tool and adds "PDFCROP" to the right-click menu
+of PDF files.
+
+It does not need Perl, a TeX distribution (MiKTeX/TeX Live), Python or a
+pre-installed Ghostscript: everything it uses is inside this installer.
+
+Bundled third-party component
+  Ghostscript 10.08 (AGPL v3), unmodified, in the "gs" subfolder. PDFCROP only
+  runs it with -sDEVICE=bbox to measure each page. The licence text ships as
+  gs\COPYING and in THIRD-PARTY.md; the source is published by Artifex at
+  https://github.com/ArtifexSoftware/ghostpdl (release tag gs10080).
+
+The default output is <name>-crop.pdf next to the original file; the original is
+never modified.

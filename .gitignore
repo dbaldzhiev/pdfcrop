@@ -1,0 +1,8 @@
+/target
+/dist
+/staging
+/unpack
+/gs-setup.exe
+*.pyc
+__pycache__/
+.venv*/
